@@ -1,4 +1,6 @@
 # 🪐 Biliverse: 🔀 Redirect
+
+本仓库是 [Teragion 的个人用途 fork](https://github.com/Teragion/Redirect)，基于 [Biliverse/Redirect v0.2.25](https://github.com/Biliverse/Redirect/tree/v0.2.25)，保留原作者、历史和 Apache-2.0 许可证。Loon 专用修复与安装、构建来源和实际连接 IP 验证方法见 [Loon Fork Specification](docs/LoonForkSpecification.md)。
 自动化重定向 CDN，让播放更流畅
 
 统一处理 OverseaVideo（港澳台）、BStar（国际版）、PCDN（中国大陆）与 MCDN（中国大陆）请求，并按对应模块参数选择重定向目标。

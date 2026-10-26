@@ -41,7 +41,9 @@
 		"build:args:rewrite": "arguments-builder build -c arguments-builder.rewrite.config.ts",
 		"build:args": "npm-run-all --serial build:release-args build:full-args",
 		"test": "node --test tests/*.test.mjs",
-		"dts": "arguments-builder dts -c arguments-builder.full.config.ts"
+		"dts": "arguments-builder dts -c arguments-builder.full.config.ts",
+		"build:loon:config": "arguments-builder loon -c arguments-builder.release.config.ts && arguments-builder boxjs -c arguments-builder.release.config.ts",
+		"test:loon": "node --test tests/loon-rewrite.test.mjs tests/loon-bundle.test.mjs tests/preferences-template.test.mjs"
 	},
 	"browserslist": [
 		"iOS >= 15"
@@ -68,5 +70,6 @@
 		"@iringo/surge2egern": {
 			"puppeteer": "25.7.0"
 		}
-	}
+	},
+	"version": "0.2.25-loon.1"
 }

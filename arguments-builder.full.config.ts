@@ -30,6 +30,7 @@ export const output = {
 export const args: ArgumentItem[] = [
 	{
 		key: "Host.OverseaVideo",
+		exclude: ["loon"],
 		name: "[主机名] 重定向 OverseaVideo CDN (港澳台)",
 		defaultValue: "upos-sz-mirrorali.bilivideo.com",
 		type: "string",
@@ -100,6 +101,7 @@ export const args: ArgumentItem[] = [
 	},
 	{
 		key: "Host.BStar",
+		exclude: ["loon"],
 		name: "[主机名] 重定向 BStar CDN (国际版)",
 		defaultValue: "upos-sz-mirrorali.bilivideo.com",
 		type: "string",
@@ -282,6 +284,16 @@ export const args: ArgumentItem[] = [
 	},
 ];
 
-export const argsFull: ArgumentItem[] = [...args];
+// Loon 原生 Rewrite 使用平面参数名；其他客户端和 BoxJS 保留原设置结构。
+// Native Loon Rewrite uses flat argument names; other clients and BoxJS retain their settings schema.
+export const argsFull: ArgumentItem[] = [
+	...args,
+	...args.filter(({ key }) => key === "Host.OverseaVideo" || key === "Host.BStar").map(arg => ({
+		...arg,
+		key: arg.key.replace(".", ""),
+		defaultValue: arg.key === "Host.OverseaVideo" ? "upos-sz-mirrorcos.bilivideo.com" : arg.defaultValue,
+		exclude: ["surge", "boxjs", "dts"] as ArgumentItem["exclude"],
+	})),
+];
 
 export default defineConfig({ output, args: argsFull });
