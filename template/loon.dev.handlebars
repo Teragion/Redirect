@@ -9,6 +9,9 @@
 #!date = {{now "yyyy-MM-dd HH:mm:ss"}}
 #!version = {{version}}
 #!system_version = {{ @package 'systemVersion'}}
+#!loon_version = 3.5.1(978)
+# Teragion 个人用途 fork：修改 Loon 参数及 CDN Rewrite；保留上游作者和 Apache-2.0 许可证。
+# Teragion personal fork: modified Loon arguments and CDN Rewrite; upstream authors and Apache-2.0 license retained.
 
 [Argument]
 {{{arguments}}}
@@ -16,31 +19,20 @@
 [General]
 force-http-engine-hosts = upos-sz-mirror*.bilivideo.com:80, cn-hk-eq-*.bilivideo.com:80, upos-*-mirrorakam.akamaized.net:80, *:4480, *:4483, *:8000, *:8082, *:9102
 
-[URL Rewrite]
-^http:\/\/upos-sz-mirror[a-z0-9-]*ov\.bilivideo\.com(?::80)?\/upgcxcode\/ http://\{{{Host.OverseaVideo}}}/upgcxcode/ header
-^http:\/\/cn-hk-eq-[a-z0-9-]+\.bilivideo\.com(?::80)?\/upgcxcode\/ http://\{{{Host.OverseaVideo}}}/upgcxcode/ header
-^http:\/\/upos-hz-mirrorakam\.akamaized\.net(?::80)?\/upgcxcode\/ http://\{{{Host.OverseaVideo}}}/upgcxcode/ header
-^http:\/\/upos-sz-mirrorakam\.akamaized\.net(?::80)?\/upgcxcode\/ http://\{{{Host.OverseaVideo}}}/upgcxcode/ header
-^http:\/\/upos-sz-mirror[a-z0-9-]*bstar1\.bilivideo\.com(?::80)?\/upgcxcode\/ http://\{{{Host.BStar}}}/upgcxcode/ header
-^http:\/\/upos-bstar1-mirrorakam\.akamaized\.net(?::80)?\/upgcxcode\/ http://\{{{Host.BStar}}}/upgcxcode/ header
-^https:\/\/upos-sz-mirror[a-z0-9-]*ov\.bilivideo\.com(?::(?:443|4483))?\/upgcxcode\/ https://\{{{Host.OverseaVideo}}}/upgcxcode/ header
-^https:\/\/cn-hk-eq-[a-z0-9-]+\.bilivideo\.com(?::(?:443|4483))?\/upgcxcode\/ https://\{{{Host.OverseaVideo}}}/upgcxcode/ header
-^https:\/\/upos-hz-mirrorakam\.akamaized\.net(?::(?:443|4483))?\/upgcxcode\/ https://\{{{Host.OverseaVideo}}}/upgcxcode/ header
-^https:\/\/upos-sz-mirrorakam\.akamaized\.net(?::(?:443|4483))?\/upgcxcode\/ https://\{{{Host.OverseaVideo}}}/upgcxcode/ header
-^https:\/\/upos-sz-mirror[a-z0-9-]*bstar1\.bilivideo\.com(?::(?:443|4483))?\/upgcxcode\/ https://\{{{Host.BStar}}}/upgcxcode/ header
-^https:\/\/upos-bstar1-mirrorakam\.akamaized\.net(?::(?:443|4483))?\/upgcxcode\/ https://\{{{Host.BStar}}}/upgcxcode/ header
-
 [Rewrite]
-response if ${url} ~= /^https:\/\/(?:biliverse\.github\.io|app\.bilibili\.com)\/api\/Redirect(?:\?.*)?$/ then response.body.mock_file("json", "https://gist.githubusercontent.com/VirgilClyne/0c193c4ff4b930d765b1ca4b406ec1b9/raw/BiliBili.Redirect.dev.boxjs.json", 200) | response.header.set("X-PreferencePanes-Version", "{{version}}") | response.header.set("Cache-Control", "no-store")
+# 仅替换协议与主机部分；路径、查询字符串不经过 URL 解析器。
+# Replace only the scheme and authority; leave path and query bytes untouched.
+request if ${url} ~= /^(https?:\/\/)(?:upos-sz-mirror[a-z0-9-]*ov\.bilivideo\.com|cn-hk-eq-[a-z0-9-]+\.bilivideo\.com|upos-(?:hz|sz)-mirrorakam\.akamaized\.net)(?::(?:80|443|4483))?(?=\/upgcxcode\/)/ as cdn then url.replace("${cdn.1}${HostOverseaVideo}")
+# BStar 必须在 OverseaVideo 之后，避免其海外目标被再次改写。
+# Keep BStar after OverseaVideo so its overseas target is not rewritten again.
+request if ${url} ~= /^(https?:\/\/)(?:upos-sz-mirror[a-z0-9-]*bstar1\.bilivideo\.com|upos-bstar1-mirrorakam\.akamaized\.net)(?::(?:80|443|4483))?(?=\/upgcxcode\/)/ as cdn then url.replace("${cdn.1}${HostBStar}")
+
+response if ${url} ~= /^https:\/\/(?:biliverse\.github\.io|app\.bilibili\.com)\/api\/Redirect(?:\?.*)?$/ then response.body.mock_file("json", "https://github.com/Teragion/Redirect/releases/download/v{{@package 'version'}}/BiliBili.Redirect.dev.boxjs.json", 200) | response.header.set("X-PreferencePanes-Version", "{{version}}") | response.header.set("Cache-Control", "no-store")
 
 [Script]
-http-request ^https?:\/\/.+\.bilivideo\.com(?::(?:80|443|4483))?\/upgcxcode\/ script-path=https://gist.githubusercontent.com/VirgilClyne/0c193c4ff4b930d765b1ca4b406ec1b9/raw/request.dev.bundle.js, tag=📺 BiliBili.Redirect.CDN.upgcxcode.m4s, argument={{{scriptParams}}}
-http-request ^https?:\/\/[adbcefxy0-9]+\.mcdn\.bilivideo\.cn(?::(?:8000|8082))?\/v1\/resource\/ script-path=https://gist.githubusercontent.com/VirgilClyne/0c193c4ff4b930d765b1ca4b406ec1b9/raw/request.dev.bundle.js, tag=📺 BiliBili.Redirect.MCDN.v1.resource.m4s, argument={{{scriptParams}}}
-http-request ^https?:\/\/[adbcefxy0-9]+\.mcdn\.bilivideo\.cn(?::(?:4483|9102))?\/upgcxcode\/ script-path=https://gist.githubusercontent.com/VirgilClyne/0c193c4ff4b930d765b1ca4b406ec1b9/raw/request.dev.bundle.js, tag=📺 BiliBili.Redirect.MCDN.upgcxcode.m4s, argument={{{scriptParams}}}
-http-request ^https?:\/\/(.+):4480\/upgcxcode\/ script-path=https://gist.githubusercontent.com/VirgilClyne/0c193c4ff4b930d765b1ca4b406ec1b9/raw/request.dev.bundle.js, tag=📺 BiliBili.Redirect.PCDN.upgcxcode.m4s, argument={{{scriptParams}}}
-http-request ^https?:\/\/upos-hz-mirrorakam\.akamaized\.net(?::(?:80|443|4483))?\/upgcxcode\/ script-path=https://gist.githubusercontent.com/VirgilClyne/0c193c4ff4b930d765b1ca4b406ec1b9/raw/request.dev.bundle.js, tag=📺 BiliBili.Redirect.Akamaized.hz.upgcxcode.m4s, argument={{{scriptParams}}}
-http-request ^https?:\/\/upos-sz-mirrorakam\.akamaized\.net(?::(?:80|443|4483))?\/upgcxcode\/ script-path=https://gist.githubusercontent.com/VirgilClyne/0c193c4ff4b930d765b1ca4b406ec1b9/raw/request.dev.bundle.js, tag=📺 BiliBili.Redirect.Akamaized.sz.upgcxcode.m4s, argument={{{scriptParams}}}
-http-request ^https?:\/\/upos-bstar1-mirrorakam\.akamaized\.net(?::(?:80|443|4483))?\/upgcxcode\/ script-path=https://gist.githubusercontent.com/VirgilClyne/0c193c4ff4b930d765b1ca4b406ec1b9/raw/request.dev.bundle.js, tag=📺 BiliBili.Redirect.Akamaized.bstar1.upgcxcode.m4s, argument={{{scriptParams}}}
+http-request ^https?:\/\/[adbcefxy0-9]+\.mcdn\.bilivideo\.cn(?::(?:8000|8082))?\/v1\/resource\/ script-path=https://github.com/Teragion/Redirect/releases/download/v{{@package 'version'}}/request.dev.bundle.js, tag=📺 BiliBili.Redirect.MCDN.v1.resource.m4s, argument={{{scriptParams}}}
+http-request ^https?:\/\/[adbcefxy0-9]+\.mcdn\.bilivideo\.cn(?::(?:4483|9102))?\/upgcxcode\/ script-path=https://github.com/Teragion/Redirect/releases/download/v{{@package 'version'}}/request.dev.bundle.js, tag=📺 BiliBili.Redirect.MCDN.upgcxcode.m4s, argument={{{scriptParams}}}
+http-request ^https?:\/\/(.+):4480\/upgcxcode\/ script-path=https://github.com/Teragion/Redirect/releases/download/v{{@package 'version'}}/request.dev.bundle.js, tag=📺 BiliBili.Redirect.PCDN.upgcxcode.m4s, argument={{{scriptParams}}}
 
 [MITM]
 hostname = biliverse.github.io, *.mcdn.bilivideo.cn, upos-sz-mirror*.bilivideo.com, cn-hk-eq-*.bilivideo.com, upos-*-mirrorakam.akamaized.net, app.bilibili.com
