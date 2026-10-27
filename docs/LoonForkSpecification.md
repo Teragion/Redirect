@@ -5,7 +5,7 @@
 ## 安装与参数
 
 - 最低版本：Loon 3.5.1 (978)，开启 Rewrite；HTTPS 视频请求还需要有效的 MitM 解密。
-- 安装地址：`https://github.com/Teragion/Redirect/releases/download/v0.2.25-loon.1/BiliBili.Redirect.plugin`。
+- 安装地址：`https://github.com/Teragion/Redirect/releases/download/v0.2.25-loon.2/BiliBili.Redirect.plugin`。
 - 禁用旧版 Redirect 插件及重复 CDN 规则，重新安装本 fork。参数名称变化后需重新选择原有自定义值。
 - `HostOverseaVideo` 默认 `upos-sz-mirrorcos.bilivideo.com`，例如将 `upos-sz-mirrorcosov.bilivideo.com` 改为国内腾讯 CDN。
 - `HostBStar` 保留原默认目标 `upos-sz-mirrorali.bilivideo.com`。
@@ -34,9 +34,9 @@ PCDN/MCDN 继续使用未经修改的上游脚本：PCDN 优先 `xy_usource`，�
 - 发布包附带原始 `LICENSE`、`PROVENANCE.json`、`SHA256SUMS`。
 - 本版只发布正式 Loon 插件；开发版模板同样修复并测试，但不将缺少对应开发脚本的 `.dev.plugin` 作为安装产物发布。
 
-实际执行 `npm ci --ignore-scripts` 在 GitHub Packages 返回 401 Unauthorized。`.npmrc` 依赖 `NODE_AUTH_TOKEN` 访问 `@nsnanocat/*` 和 `@biliverse/*`。用户无此类令牌，故完整 `npm test` 的源码运行时测试无法加载依赖，`npm run build` 也未成功（安装失败后缺少 npm-run-all）。没有声称完整源码构建成功。
+首次发布时，执行 `npm ci --ignore-scripts` 在 GitHub Packages 返回 401 Unauthorized。`.npmrc` 依赖 `NODE_AUTH_TOKEN` 访问 `@nsnanocat/*` 和 `@biliverse/*`。用户无此类令牌，故完整 `npm test` 的源码运行时测试无法加载依赖，`npm run build` 也未成功（安装失败后缺少 npm-run-all）。没有声称完整源码构建成功。
 
-原 Actions 构建工作流引用 `PACKAGE_TOKEN` 和 `SUBMODULE_TOKEN`；fork 不继承上游 secrets，本版使用手工配置生成与已发布脚本复用，不依赖这些工作流完成发布。若以后修改请求脚本，必须具备包访问权限并重新完整构建，不能继续复用旧脚本冒充新构建。
+原 Actions 构建工作流引用 `PACKAGE_TOKEN` 和 `SUBMODULE_TOKEN`；fork 不继承上游 secrets，本版使用手工配置生成与已发布脚本复用，不依赖这些工作流完成发布。若以后修改请求脚本，必须重新完整构建，不能继续复用旧脚本冒充新构建。当前源码的公开 npm 构建方式见下节。
 
 定向命令（Node.js 22.18+ 的 TypeScript 类型剥离支持，以及已安装的公开构建器）：
 
@@ -46,6 +46,26 @@ LOON_PLUGIN_DIR=dist REDIRECT_BUNDLE=dist/request.bundle.js npm run test:loon
 ```
 
 `test:loon` 包含 15 项测试：两个模板的真实 Handlebars/ArgumentsBuilder 输出、所有现有目标选项展开、协议与原始路径/查询保留、非目标域名、脚本匹配互斥、其他客户端/BoxJS 参数结构，以及实际发布脚本在隔离 Loon API 环境中的 PCDN/MCDN 行为。原生 Rewrite 部分按官方语义模拟；它不是 Loon 解析器或 iOS 网络栈测试。完整测试的实际结果为 17 项通过、1 个测试文件因缺失 `@nsnanocat/util` 无法加载（cloudRuntime），并非全绿。
+
+## 当前源码构建：公开 npm 源
+
+四个依赖的原锁定版本均已确认可从 `https://registry.npmjs.org/` 匿名安装：`@biliverse/protobuf@1.0.0`、`@nsnanocat/grpc@1.1.0`、`@nsnanocat/url@1.2.6`、`@nsnanocat/util@2.7.5`。不需要 `NODE_AUTH_TOKEN` 或 `PACKAGE_TOKEN`，未升级任何依赖版本。
+
+`.npmrc` 使用公开源；锁文件同步公开 tarball 地址和完整性校验。`protobuf@1.0.0` 两个 registry 记录的 tarball 校验值不同，不能声称压缩包逐字节相同；当前源码没有导入该包，但保留依赖并使用 npm 发布物的校验值。`grpc` 和 `util` 的校验值相同，`url` 原锁记录缺少地址与校验值，现已补齐。
+
+```sh
+npm ci
+npm run build
+npm run build:dev-args
+npm run build:dev
+LOON_PLUGIN_DIR=dist REDIRECT_BUNDLE=dist/request.bundle.js npm test
+```
+
+2026-10-28 在 Node.js 25.2.1 / npm 11.6.2 下，未设置 `NODE_AUTH_TOKEN`，安装、正式版及开发版构建成功；实际生成的插件和请求脚本通过全部 20 项测试，无跳过。正式版 Egern YAML 已确认非空。生成 Egern 配置需要 Puppeteer 启动 Chrome，本机 Codex 受限执行环境启动失败，在获准的沙箱外执行成功；未禁用 Chrome 沙箱。构建器可能记录转换错误却仍返回退出码 0，因此不能只依据进程退出码判断完整构建成功。
+
+共享 Actions 改用 `npm ci`，移除 Packages Secret 输入，安装与构建共用 Puppeteer 缓存；checkout 使用默认 GitHub token（当前仓库无子模块）。正式 Build 保留 Egern 产物检查，并执行含真实请求脚本的测试。Cloudflare、Gist 等部署仍需要对应服务凭据。这些工作流修改尚未在 GitHub runner 上执行验证。
+
+上述是当前源码的本地构建验证，不改变已发布 `v0.2.25-loon.1` 的资产或来源声明。
 
 ## 如何验证实际 CDN 连接 IP
 

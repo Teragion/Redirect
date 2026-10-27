@@ -15,12 +15,10 @@ jobs:
         uses: actions/checkout@v7
         with:
           submodules: recursive
-          token: ${{ secrets.SUBMODULE_TOKEN }}
           ref: dev
       - name: Run Build Pipeline
         uses: ./.github/actions/node-build
         with:
-          package-token: ${{ secrets.PACKAGE_TOKEN }}
           build-command: npm run dev
       - name: Upload Build Artifact
         uses: actions/upload-artifact@v7

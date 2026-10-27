@@ -2,16 +2,13 @@ name: Node Build
 description: Shared Node.js setup and build steps
 
 inputs:
-  package-token:
-    description: Token used for npm install
-    required: true
   node-version:
     description: Node.js version
     default: latest
     required: false
   install-command:
     description: Command used to install dependencies
-    default: npm install
+    default: npm ci
     required: false
   build-command:
     description: Optional build command
@@ -41,7 +38,7 @@ runs:
       run: ${{ inputs.install-command }}
       shell: bash
       env:
-        NODE_AUTH_TOKEN: ${{ inputs.package-token }}
+        PUPPETEER_CACHE_DIR: ${{ runner.temp }}/puppeteer
     - name: Install Puppeteer Chrome
       run: |
         node node_modules/puppeteer/install.mjs
